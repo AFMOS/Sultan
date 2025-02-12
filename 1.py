@@ -55,8 +55,8 @@ def load_data():
     try:
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
-        # Convert Timestamp to datetime
-        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        # Convert Timestamp to datetime, handling the specific format
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'], format='%m/%d/%Y %H:%M:%S')
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
@@ -67,8 +67,8 @@ def format_message(filtered_df, selected_date):
     date_str = selected_date.strftime("%Y-%m-%d")
     
     # Separate invoices and collections
-    invoices = filtered_df[filtered_df['رقم الفاتورة'].notna()]
-    collections = filtered_df[filtered_df['رقم السند '].notna()]
+    invoices = filtered_df[filtered_df['نوع العملية'] == 'فاتورة']
+    collections = filtered_df[filtered_df['نوع العملية'] == 'تحصيل']
     
     # Calculate totals
     total_invoices = invoices['مبلغ الفاتورة'].sum()
@@ -80,9 +80,9 @@ def format_message(filtered_df, selected_date):
     # Add transactions
     for _, row in filtered_df.iterrows():
         message += f"كود العميل: {row['كود العميل']}\n"
-        if pd.notna(row['رقم الفاتورة']):
+        if row['نوع العملية'] == 'فاتورة':
             message += f"رقم الفاتورة: {row['رقم الفاتورة']}\n"
-        if pd.notna(row['رقم السند ']):
+        elif row['نوع العملية'] == 'تحصيل':
             message += f"رقم التحصيل: {row['رقم السند ']}\n"
         message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
@@ -111,13 +111,13 @@ def main():
         key="date_picker"
     )
     
-    # Filter data by Timestamp
+    # Filter data by Timestamp date only (ignoring time)
     filtered_df = df[df['Timestamp'].dt.date == selected_date]
     
     if not filtered_df.empty:
-        # Calculate totals based on invoice/collection numbers
-        invoices = filtered_df[filtered_df['رقم الفاتورة'].notna()]
-        collections = filtered_df[filtered_df['رقم السند '].notna()]
+        # Calculate totals
+        invoices = filtered_df[filtered_df['نوع العملية'] == 'فاتورة']
+        collections = filtered_df[filtered_df['نوع العملية'] == 'تحصيل']
         
         total_invoices = invoices['مبلغ الفاتورة'].sum()
         total_collections = collections['مبلغ الفاتورة'].sum()
