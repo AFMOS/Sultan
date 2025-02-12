@@ -6,8 +6,8 @@ import urllib.parse
 
 # Set page config for dark theme
 st.set_page_config(
-    page_title="نظام متابعة الفواتير",
-    page_icon="📊",
+    page_title="",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -101,7 +101,7 @@ def format_message(filtered_df, selected_date):
     return message
 
 def main():
-    st.title("📊 نظام متابعة الفواتير")
+    st.title("")
     
     # Load data
     df = load_data()
