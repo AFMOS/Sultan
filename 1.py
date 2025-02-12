@@ -6,8 +6,8 @@ import urllib.parse
 
 # Set page config for dark theme
 st.set_page_config(
-    page_title="",
-    page_icon="",
+    page_title="نظام متابعة الفواتير",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -55,13 +55,18 @@ def load_data():
     try:
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
+        # Convert both Timestamp and تاريخ الفاتورة to datetime
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        df['تاريخ الفاتورة'] = pd.to_datetime(df['تاريخ الفاتورة'])
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
         return None
 
-def format_message(filtered_df):
+def format_message(filtered_df, selected_date):
+    # Format the selected date in Arabic style
+    date_str = selected_date.strftime("%Y-%m-%d")
+    
     # Separate invoices and collections
     invoices = filtered_df[filtered_df['رقم الفاتورة'].notna()]
     collections = filtered_df[filtered_df['رقم السند '].notna()]
@@ -70,8 +75,8 @@ def format_message(filtered_df):
     total_invoices = invoices['مبلغ الفاتورة'].sum()
     total_collections = collections['مبلغ الفاتورة'].sum()
     
-    # Format the message
-    message = "تقرير اليوم:\n\n"
+    # Format the message with the selected date
+    message = f"تقرير يوم {date_str}:\n\n"
     
     # Add transactions
     for _, row in filtered_df.iterrows():
@@ -80,7 +85,7 @@ def format_message(filtered_df):
             message += f"رقم الفاتورة: {row['رقم الفاتورة']}\n"
         if pd.notna(row['رقم السند ']):
             message += f"رقم التحصيل: {row['رقم السند ']}\n"
-        message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
+        message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة'].strftime('%Y-%m-%d')}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
         if pd.notna(row['نوع التحصيل ']):
             message += f"نوع التحصيل: {row['نوع التحصيل ']}\n"
@@ -93,7 +98,7 @@ def format_message(filtered_df):
     return message
 
 def main():
-    st.title("📊 ")
+    st.title("📊 نظام متابعة الفواتير")
     
     # Load data
     df = load_data()
@@ -107,8 +112,8 @@ def main():
         key="date_picker"
     )
     
-    # Filter data for selected date
-    filtered_df = df[df['Timestamp'].dt.date == selected_date]
+    # Filter data by selected date using تاريخ الفاتورة
+    filtered_df = df[df['تاريخ الفاتورة'].dt.date == selected_date]
     
     if not filtered_df.empty:
         # Calculate totals based on invoice/collection numbers
@@ -124,8 +129,8 @@ def main():
         with col2:
             st.metric("إجمالي التحصيل", f"{total_collections:.2f}")
         
-        # Generate message
-        message = format_message(filtered_df)
+        # Generate message with selected date
+        message = format_message(filtered_df, selected_date)
         
         # Create WhatsApp share link
         whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(message)}"
