@@ -55,9 +55,8 @@ def load_data():
     try:
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
-        # Convert both Timestamp and تاريخ الفاتورة to datetime
+        # Convert Timestamp to datetime
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        df['تاريخ الفاتورة'] = pd.to_datetime(df['تاريخ الفاتورة'])
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
@@ -85,7 +84,7 @@ def format_message(filtered_df, selected_date):
             message += f"رقم الفاتورة: {row['رقم الفاتورة']}\n"
         if pd.notna(row['رقم السند ']):
             message += f"رقم التحصيل: {row['رقم السند ']}\n"
-        message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة'].strftime('%Y-%m-%d')}\n"
+        message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
         if pd.notna(row['نوع التحصيل ']):
             message += f"نوع التحصيل: {row['نوع التحصيل ']}\n"
@@ -112,8 +111,8 @@ def main():
         key="date_picker"
     )
     
-    # Filter data by selected date using تاريخ الفاتورة
-    filtered_df = df[df['تاريخ الفاتورة'].dt.date == selected_date]
+    # Filter data by Timestamp
+    filtered_df = df[df['Timestamp'].dt.date == selected_date]
     
     if not filtered_df.empty:
         # Calculate totals based on invoice/collection numbers
