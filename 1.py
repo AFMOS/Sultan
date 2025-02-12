@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import urllib.parse
 
@@ -49,14 +49,18 @@ st.markdown("""
 
 # Constants
 SHEET_ID = '1fnqyVMhbiAyG7d2lU4ewJtmGjzqSdEg_9ysvK9-AkKE'
+TIMEZONE = pytz.timezone('Asia/Riyadh')
 
 @st.cache_data(ttl=300)
 def load_data():
     try:
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
-        # Convert Timestamp to datetime, handling the specific format
-        df['Timestamp'] = pd.to_datetime(df['Timestamp'], format='%m/%d/%Y %H:%M:%S')
+        
+        # Convert Timestamp to datetime with explicit timezone
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        df['Timestamp'] = df['Timestamp'].dt.tz_localize('Asia/Riyadh')
+        
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
@@ -104,15 +108,25 @@ def main():
     if df is None:
         return
     
+    # Get current date in Saudi Arabia timezone
+    now = datetime.now(TIMEZONE)
+    
     # Date selector with larger touch target
     selected_date = st.date_input(
         "اختر التاريخ",
-        datetime.now(pytz.timezone('Asia/Riyadh')).date(),
+        now.date(),
         key="date_picker"
     )
     
-    # Filter data by Timestamp date only (ignoring time)
-    filtered_df = df[df['Timestamp'].dt.date == selected_date]
+    # Convert selected date to datetime with timezone
+    start_of_day = TIMEZONE.localize(datetime.combine(selected_date, datetime.min.time()))
+    end_of_day = TIMEZONE.localize(datetime.combine(selected_date, datetime.max.time()))
+    
+    # Filter data by Timestamp within the selected date in Saudi timezone
+    filtered_df = df[
+        (df['Timestamp'] >= start_of_day) & 
+        (df['Timestamp'] <= end_of_day)
+    ].copy()
     
     if not filtered_df.empty:
         # Calculate totals
