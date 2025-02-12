@@ -3,12 +3,11 @@ import pandas as pd
 from datetime import datetime
 import pytz
 import urllib.parse
-import webbrowser
 
 # Set page config for dark theme
 st.set_page_config(
-    page_title="فرسانا يامحمد",
-    page_icon="😁",
+    page_title="",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -41,6 +40,10 @@ st.markdown("""
                 padding-bottom: 1rem;
             }
         }
+        /* Hide streamlit branding */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -90,7 +93,7 @@ def format_message(filtered_df):
     return message
 
 def main():
-    st.title("")
+    st.title("📊 ")
     
     # Load data
     df = load_data()
@@ -121,15 +124,22 @@ def main():
         with col2:
             st.metric("إجمالي التحصيل", f"{total_collections:.2f}")
         
-        # WhatsApp sharing button
-        if st.button("مشاركة عبر واتساب"):
-            message = format_message(filtered_df)
-            whatsapp_url = f"whatsapp://send?text={urllib.parse.quote(message)}"
-            try:
-                webbrowser.open(whatsapp_url)
-                st.success("جاري الفتح في واتساب...")
-            except Exception as e:
-                st.error("حدث خطأ في فتح واتساب. يرجى المحاولة مرة أخرى.")
+        # Generate message
+        message = format_message(filtered_df)
+        
+        # Create WhatsApp share link
+        whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(message)}"
+        
+        # Create a clickable link that opens WhatsApp
+        st.markdown(
+            f'<a href="{whatsapp_url}" target="_blank" style="text-decoration: none; width: 100%;">'
+            '<button style="background-color: #25D366; color: white; padding: 15px; '
+            'border: none; border-radius: 8px; cursor: pointer; width: 100%; '
+            'font-size: 18px; margin: 10px 0;">'
+            '📱 مشاركة عبر واتساب</button></a>',
+            unsafe_allow_html=True
+        )
+        
     else:
         st.info("لا توجد عمليات في التاريخ المحدد")
 
