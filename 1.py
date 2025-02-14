@@ -3,11 +3,12 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import urllib.parse
+import numpy as np
 
 # Set page config for dark theme
 st.set_page_config(
-    page_title="نظام متابعة الفواتير",
-    page_icon="📊",
+    page_title="",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -51,6 +52,14 @@ st.markdown("""
 SHEET_ID = '1fnqyVMhbiAyG7d2lU4ewJtmGjzqSdEg_9ysvK9-AkKE'
 TIMEZONE = pytz.timezone('Asia/Riyadh')
 
+def safe_int_convert(value):
+    try:
+        if pd.isna(value):
+            return "غير متوفر"
+        return str(int(float(value)))
+    except (ValueError, TypeError):
+        return str(value)
+
 @st.cache_data(ttl=300)
 def load_data():
     try:
@@ -59,7 +68,6 @@ def load_data():
         
         # Convert Timestamp to datetime and normalize timezone
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        # Convert to Saudi timezone
         df['Timestamp'] = df['Timestamp'].dt.tz_localize('UTC').dt.tz_convert('Asia/Riyadh')
         
         return df
@@ -68,11 +76,9 @@ def load_data():
         return None
 
 def get_date_range(selected_date):
-    # Convert selected date to Saudi timezone
     start_of_day = datetime.combine(selected_date, datetime.min.time())
     end_of_day = datetime.combine(selected_date, datetime.max.time())
     
-    # Localize to Saudi timezone
     start_of_day = TIMEZONE.localize(start_of_day)
     end_of_day = TIMEZONE.localize(end_of_day)
     
@@ -100,10 +106,12 @@ def format_message(filtered_df, selected_date, selected_types):
     for _, row in filtered_df.iterrows():
         message += f"كود العميل: {row['كود العميل']}\n"
         if row['نوع العملية'] == 'فاتورة':
-            message += f"رقم الفاتورة: {int(row['رقم الفاتورة'])}\n"
+            message += f"رقم الفاتورة: {safe_int_convert(row['رقم الفاتورة'])}\n"
             message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
         elif row['نوع العملية'] == 'تحصيل':
-            message += f"رقم التحصيل: {int(row['رقم الفاتورة'])}\n"
+            # For collections, use رقم السند if available, otherwise use رقم الفاتورة
+            receipt_num = row['رقم السند '] if pd.notna(row['رقم السند ']) else row['رقم الفاتورة']
+            message += f"رقم التحصيل: {safe_int_convert(receipt_num)}\n"
             message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
         if pd.notna(row['نوع التحصيل ']):
@@ -119,7 +127,7 @@ def format_message(filtered_df, selected_date, selected_types):
     return message
 
 def main():
-    st.title("📊 نظام متابعة الفواتير")
+    st.title("")
     
     # Load data
     df = load_data()
