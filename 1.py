@@ -152,13 +152,6 @@ def main():
     # Get date range in Saudi timezone
     start_of_day, end_of_day = get_date_range(selected_date)
     
-    # Debug information
-    st.write("Debug Info (invisible in production):")
-    st.write(f"Start of day: {start_of_day}")
-    st.write(f"End of day: {end_of_day}")
-    st.write("First few timestamps:")
-    st.write(df['Timestamp'].head())
-    
     # Filter data by Timestamp within the selected date in Saudi timezone
     filtered_df = df[
         (df['Timestamp'] >= start_of_day) & 
