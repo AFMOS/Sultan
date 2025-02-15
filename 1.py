@@ -70,6 +70,12 @@ def load_data():
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
         df['Timestamp'] = df['Timestamp'].dt.tz_localize('UTC').dt.tz_convert('Asia/Riyadh')
         
+        # Ensure مبلغ الفاتورة is numeric
+        df['مبلغ الفاتورة'] = pd.to_numeric(df['مبلغ الفاتورة'], errors='coerce')
+        
+        # Fill any NaN values with 0
+        df['مبلغ الفاتورة'] = df['مبلغ الفاتورة'].fillna(0)
+        
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
@@ -85,46 +91,56 @@ def get_date_range(selected_date):
     return start_of_day, end_of_day
 
 def format_message(filtered_df, selected_date, selected_types):
-    # Format the selected date in Arabic style
-    date_str = selected_date.strftime("%Y-%m-%d")
-    
-    # Filter by selected types
-    filtered_df = filtered_df[filtered_df['نوع العملية'].isin(selected_types)]
-    
-    # Separate invoices and collections
-    invoices = filtered_df[filtered_df['نوع العملية'] == 'فاتورة']
-    collections = filtered_df[filtered_df['نوع العملية'] == 'تحصيل']
-    
-    # Calculate totals
-    total_invoices = invoices['مبلغ الفاتورة'].sum() if 'فاتورة' in selected_types else 0
-    total_collections = collections['مبلغ الفاتورة'].sum() if 'تحصيل' in selected_types else 0
-    
-    # Format the message with the selected date
-    message = f"تقرير يوم {date_str}:\n\n"
-    
-    # Add transactions
-    for _, row in filtered_df.iterrows():
-        message += f"كود العميل: {row['كود العميل']}\n"
-        if row['نوع العملية'] == 'فاتورة':
-            message += f"رقم الفاتورة: {safe_int_convert(row['رقم الفاتورة'])}\n"
-            message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
-        elif row['نوع العملية'] == 'تحصيل':
-            # For collections, use رقم السند if available, otherwise use رقم الفاتورة
-            receipt_num = row['رقم السند '] if pd.notna(row['رقم السند ']) else row['رقم الفاتورة']
-            message += f"رقم التحصيل: {safe_int_convert(receipt_num)}\n"
-            message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
-        message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
-        if pd.notna(row['نوع التحصيل ']):
-            message += f"نوع التحصيل: {row['نوع التحصيل ']}\n"
-        message += "-------------------\n"
-    
-    # Add totals based on selected types
-    if 'فاتورة' in selected_types:
-        message += f"\nإجمالي الفواتير: {total_invoices:.2f}\n"
-    if 'تحصيل' in selected_types:
-        message += f"إجمالي التحصيل: {total_collections:.2f}\n"
-    
-    return message
+    try:
+        # Format the selected date in Arabic style
+        date_str = selected_date.strftime("%Y-%m-%d")
+        
+        # Filter by selected types and ensure we have a copy
+        filtered_df = filtered_df[filtered_df['نوع العملية'].isin(selected_types)].copy()
+        
+        # Convert مبلغ الفاتورة to numeric, replacing errors with 0
+        filtered_df['مبلغ الفاتورة'] = pd.to_numeric(filtered_df['مبلغ الفاتورة'], errors='coerce').fillna(0)
+        
+        # Separate invoices and collections
+        invoices = filtered_df[filtered_df['نوع العملية'] == 'فاتورة']
+        collections = filtered_df[filtered_df['نوع العملية'] == 'تحصيل']
+        
+        # Calculate totals safely
+        total_invoices = invoices['مبلغ الفاتورة'].sum() if not invoices.empty and 'فاتورة' in selected_types else 0
+        total_collections = collections['مبلغ الفاتورة'].sum() if not collections.empty and 'تحصيل' in selected_types else 0
+        
+        # Format the message with the selected date
+        message = f"تقرير يوم {date_str}:\n\n"
+        
+        # Add transactions
+        for _, row in filtered_df.iterrows():
+            try:
+                message += f"كود العميل: {row['كود العميل']}\n"
+                if row['نوع العملية'] == 'فاتورة':
+                    message += f"رقم الفاتورة: {safe_int_convert(row['رقم الفاتورة'])}\n"
+                    message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
+                elif row['نوع العملية'] == 'تحصيل':
+                    # For collections, use رقم السند if available, otherwise use رقم الفاتورة
+                    receipt_num = row['رقم السند '] if pd.notna(row['رقم السند ']) else row['رقم الفاتورة']
+                    message += f"رقم التحصيل: {safe_int_convert(receipt_num)}\n"
+                    message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
+                message += f"المبلغ: {row['مبلغ الفاتورة']:.2f}\n"
+                if pd.notna(row['نوع التحصيل ']):
+                    message += f"نوع التحصيل: {row['نوع التحصيل ']}\n"
+                message += "-------------------\n"
+            except Exception as e:
+                continue  # Skip any problematic entries
+        
+        # Add totals based on selected types
+        if 'فاتورة' in selected_types:
+            message += f"\nإجمالي الفواتير: {total_invoices:.2f}\n"
+        if 'تحصيل' in selected_types:
+            message += f"إجمالي التحصيل: {total_collections:.2f}\n"
+        
+        return message
+    except Exception as e:
+        # If anything goes wrong, return a basic message
+        return "عذراً، حدث خطأ في تنسيق التقرير. يرجى المحاولة مرة أخرى."
 
 def main():
     st.title("📊 نظام متابعة الفواتير")
