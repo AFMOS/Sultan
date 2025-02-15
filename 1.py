@@ -7,8 +7,8 @@ import numpy as np
 
 # Set page config for dark theme
 st.set_page_config(
-    page_title="",
-    page_icon="",
+    page_title="نظام متابعة الفواتير",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -127,7 +127,7 @@ def format_message(filtered_df, selected_date, selected_types):
     return message
 
 def main():
-    st.title("")
+    st.title("📊 نظام متابعة الفواتير")
     
     # Load data
     df = load_data()
