@@ -170,20 +170,31 @@ def main():
         # Filter by selected types for totals
         type_filtered_df = filtered_df[filtered_df['نوع العملية'].isin(selected_types)]
         
-        # Calculate totals for visible types only
-        invoices = type_filtered_df[type_filtered_df['نوع العملية'] == 'فاتورة']
-        collections = type_filtered_df[type_filtered_df['نوع العملية'] == 'تحصيل']
-        
-        total_invoices = invoices['مبلغ الفاتورة'].sum() if 'فاتورة' in selected_types else 0
-        total_collections = collections['مبلغ الفاتورة'].sum() if 'تحصيل' in selected_types else 0
-        
-        col1, col2 = st.columns(2)
-        if 'فاتورة' in selected_types:
-            with col1:
-                st.metric("إجمالي الفواتير", f"{total_invoices:.2f}")
-        if 'تحصيل' in selected_types:
-            with col2:
-                st.metric("إجمالي التحصيل", f"{total_collections:.2f}")
+        try:
+            # Calculate totals for visible types only
+            invoices = type_filtered_df[type_filtered_df['نوع العملية'] == 'فاتورة']
+            collections = type_filtered_df[type_filtered_df['نوع العملية'] == 'تحصيل']
+            
+            # Ensure مبلغ الفاتورة is numeric
+            invoices['مبلغ الفاتورة'] = pd.to_numeric(invoices['مبلغ الفاتورة'], errors='coerce')
+            collections['مبلغ الفاتورة'] = pd.to_numeric(collections['مبلغ الفاتورة'], errors='coerce')
+            
+            total_invoices = invoices['مبلغ الفاتورة'].sum() if 'فاتورة' in selected_types else 0
+            total_collections = collections['مبلغ الفاتورة'].sum() if 'تحصيل' in selected_types else 0
+            
+            # Handle NaN values
+            total_invoices = 0 if pd.isna(total_invoices) else total_invoices
+            total_collections = 0 if pd.isna(total_collections) else total_collections
+            
+            col1, col2 = st.columns(2)
+            if 'فاتورة' in selected_types:
+                with col1:
+                    st.metric("إجمالي الفواتير", f"{total_invoices:.2f}")
+            if 'تحصيل' in selected_types:
+                with col2:
+                    st.metric("إجمالي التحصيل", f"{total_collections:.2f}")
+        except Exception as e:
+            st.error("حدث خطأ في حساب الإجماليات. يرجى المحاولة مرة أخرى.")
         
         # Generate message with selected date and types
         message = format_message(filtered_df, selected_date, selected_types)
