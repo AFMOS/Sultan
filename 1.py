@@ -57,26 +57,14 @@ def load_data():
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
         
-        # Convert Timestamp to datetime and normalize timezone
+        # Convert Timestamp to datetime with explicit timezone
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        # Convert to Saudi timezone
-        df['Timestamp'] = df['Timestamp'].dt.tz_localize('UTC').dt.tz_convert('Asia/Riyadh')
+        df['Timestamp'] = df['Timestamp'].dt.tz_localize('Asia/Riyadh')
         
         return df
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
         return None
-
-def get_date_range(selected_date):
-    # Convert selected date to Saudi timezone
-    start_of_day = datetime.combine(selected_date, datetime.min.time())
-    end_of_day = datetime.combine(selected_date, datetime.max.time())
-    
-    # Localize to Saudi timezone
-    start_of_day = TIMEZONE.localize(start_of_day)
-    end_of_day = TIMEZONE.localize(end_of_day)
-    
-    return start_of_day, end_of_day
 
 def format_message(filtered_df, selected_date, selected_types):
     # Format the selected date in Arabic style
@@ -101,9 +89,11 @@ def format_message(filtered_df, selected_date, selected_types):
         message += f"كود العميل: {row['كود العميل']}\n"
         if row['نوع العملية'] == 'فاتورة':
             message += f"رقم الفاتورة: {int(row['رقم الفاتورة'])}\n"
-            message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
         elif row['نوع العملية'] == 'تحصيل':
             message += f"رقم التحصيل: {int(row['رقم الفاتورة'])}\n"
+        if row['نوع العملية'] == 'فاتورة':
+            message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
+        elif row['نوع العملية'] == 'تحصيل':
             message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
         if pd.notna(row['نوع التحصيل ']):
@@ -149,15 +139,9 @@ def main():
             key="type_selector"
         )
     
-    # Get date range in Saudi timezone
-    start_of_day, end_of_day = get_date_range(selected_date)
-    
-    # Debug information
-    st.write("Debug Info (invisible in production):")
-    st.write(f"Start of day: {start_of_day}")
-    st.write(f"End of day: {end_of_day}")
-    st.write("First few timestamps:")
-    st.write(df['Timestamp'].head())
+    # Convert selected date to datetime with timezone
+    start_of_day = TIMEZONE.localize(datetime.combine(selected_date, datetime.min.time()))
+    end_of_day = TIMEZONE.localize(datetime.combine(selected_date, datetime.max.time()))
     
     # Filter data by Timestamp within the selected date in Saudi timezone
     filtered_df = df[
@@ -199,7 +183,6 @@ def main():
             '📱 مشاركة عبر واتساب</button></a>',
             unsafe_allow_html=True
         )
-        
     else:
         if not selected_types:
             st.info("الرجاء اختيار نوع العملية")
