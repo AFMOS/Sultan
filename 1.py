@@ -91,10 +91,7 @@ def format_message(filtered_df, selected_date, selected_types):
             message += f"رقم الفاتورة: {int(row['رقم الفاتورة'])}\n"
         elif row['نوع العملية'] == 'تحصيل':
             message += f"رقم التحصيل: {int(row['رقم الفاتورة'])}\n"
-        if row['نوع العملية'] == 'فاتورة':
-            message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
-        elif row['نوع العملية'] == 'تحصيل':
-            message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
+        message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
         message += f"المبلغ: {row['مبلغ الفاتورة']}\n"
         if pd.notna(row['نوع التحصيل ']):
             message += f"نوع التحصيل: {row['نوع التحصيل ']}\n"
