@@ -66,9 +66,8 @@ def load_data():
         url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
         df = pd.read_csv(url)
         
-        # Convert Timestamp to datetime and normalize timezone
+        # Convert Timestamp to datetime - assume timestamps are in local time
         df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        df['Timestamp'] = df['Timestamp'].dt.tz_localize('UTC').dt.tz_convert('Asia/Riyadh')
         
         # Ensure مبلغ الفاتورة is numeric
         df['مبلغ الفاتورة'] = pd.to_numeric(df['مبلغ الفاتورة'], errors='coerce')
@@ -82,12 +81,9 @@ def load_data():
         return None
 
 def get_date_range(selected_date):
+    # Create datetime objects for start and end of day in local time
     start_of_day = datetime.combine(selected_date, datetime.min.time())
     end_of_day = datetime.combine(selected_date, datetime.max.time())
-    
-    start_of_day = TIMEZONE.localize(start_of_day)
-    end_of_day = TIMEZONE.localize(end_of_day)
-    
     return start_of_day, end_of_day
 
 def format_message(filtered_df, selected_date, selected_types):
