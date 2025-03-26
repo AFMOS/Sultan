@@ -116,9 +116,8 @@ def format_message(filtered_df, selected_date, selected_types):
                     message += f"رقم الفاتورة: {safe_int_convert(row['رقم الفاتورة'])}\n"
                     message += f"تاريخ الفاتورة: {row['تاريخ الفاتورة']}\n"
                 elif row['نوع العملية'] == 'تحصيل':
-                    # For collections, use رقم السند if available, otherwise use رقم الفاتورة
-                    receipt_num = row['رقم السند '] if pd.notna(row['رقم السند ']) else row['رقم الفاتورة']
-                    message += f"رقم التحصيل: {safe_int_convert(receipt_num)}\n"
+                    # FIXED: Always use رقم الفاتورة for collections
+                    message += f"رقم التحصيل: {safe_int_convert(row['رقم الفاتورة'])}\n"
                     message += f"تاريخ التحصيل: {row['Timestamp'].strftime('%d-%m-%Y')}\n"
                 message += f"المبلغ: {row['مبلغ الفاتورة']:.2f}\n"
                 if pd.notna(row['نوع التحصيل ']):
